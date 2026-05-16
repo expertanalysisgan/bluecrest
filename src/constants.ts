@@ -145,4 +145,4 @@ export const ACTIVITY_DATA = [
   { name: 'Sun', value: 55 },
 ];
 
-export const PROFILE_IMAGE = "https://res.cloudinary.com/dcksy6lcp/image/upload/v1/1b2dd907c73ce868394daa1202865cbf.jpg";
+export const PROFILE_IMAGE = "/profile.jpg";
