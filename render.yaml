@@ -3,7 +3,7 @@ services:
     name: corpus-developerplug
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: node server.cjs
     healthCheckPath: /health
     envVars:
