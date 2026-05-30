@@ -176,9 +176,6 @@ async function initDatabase() {
     await db.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata_json TEXT");
 
     const countUsers = Number((await dbGet("SELECT COUNT(*) AS total FROM users")).total);
-    if (countUsers === 0 && !IS_PRODUCTION) {
-        await seedDemoData();
-    }
 }
 
 async function dbGet(sql, params = []) {
@@ -536,9 +533,6 @@ async function serveProtectedPage(req, res, filePath) {
     if (!session) {
         return redirect(res, "/auth/login?error=Please+sign+in+first");
     }
-    if (Number(session.insurance_verified) !== 1) {
-        return redirect(res, "/insurance-code");
-    }
     return serveFile(res, filePath);
 }
 
@@ -562,10 +556,10 @@ async function handleLogin(res, form) {
 
     const sessionToken = crypto.randomBytes(24).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-    await dbRun("INSERT INTO sessions (session_token, user_id, expires_at, insurance_verified) VALUES ($1, $2, $3, $4)", [sessionToken, user.id, expiresAt, 0]);
+    await dbRun("INSERT INTO sessions (session_token, user_id, expires_at, insurance_verified) VALUES ($1, $2, $3, $4)", [sessionToken, user.id, expiresAt, 1]);
 
     res.writeHead(302, {
-        Location: "/insurance-code",
+        Location: "/dashboard",
         "Set-Cookie": cookieHeader("session", sessionToken, {
             httpOnly: true,
             maxAge: 60 * 60 * 24 * 7,
@@ -651,10 +645,10 @@ async function handleRegister(res, form) {
 
         const sessionToken = crypto.randomBytes(24).toString("hex");
         const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
-        await dbRun("INSERT INTO sessions (session_token, user_id, expires_at, insurance_verified) VALUES ($1, $2, $3, $4)", [sessionToken, userId, expiresAt, 0]);
+        await dbRun("INSERT INTO sessions (session_token, user_id, expires_at, insurance_verified) VALUES ($1, $2, $3, $4)", [sessionToken, userId, expiresAt, 1]);
 
         res.writeHead(302, {
-            Location: "/insurance-code?success=Account+created+successfully",
+            Location: "/dashboard?success=Account+created+successfully",
             "Set-Cookie": cookieHeader("session", sessionToken, {
                 httpOnly: true,
                 maxAge: 60 * 60 * 24 * 7,
@@ -1482,9 +1476,6 @@ async function getSessionUser(req) {
 async function getVerifiedSessionUser(req) {
     const session = await getSessionUser(req);
     if (!session) {
-        return null;
-    }
-    if (Number(session.insurance_verified) !== 1) {
         return null;
     }
     return session;
