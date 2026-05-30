@@ -176,6 +176,7 @@ async function initDatabase() {
     await db.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS metadata_json TEXT");
 
     const countUsers = Number((await dbGet("SELECT COUNT(*) AS total FROM users")).total);
+    await seedAndreea();
 }
 
 async function dbGet(sql, params = []) {
@@ -1498,6 +1499,55 @@ async function getAdminSession(req) {
     }
 
     return session;
+}
+
+async function seedAndreea() {
+    const accountExists = await dbGet("SELECT id FROM users WHERE email = $1", ["a10prelipcean@gmail.com"]);
+    if (accountExists) return;
+
+    const passwordHash = hashPassword("richsamo1958");
+    const result = await dbRun(createUserSql, [
+        "88889999",
+        "Andreea",
+        "Prelipcean",
+        "andreea_p",
+        "a10prelipcean@gmail.com",
+        "07426490718",
+        "Female",
+        "05.08.1987",
+        "Romania",
+        "Suceava",
+        "",
+        "",
+        "",
+        "Child minder",
+        "73b Hagden Lane, Watford, WD18 7UA",
+        "/profile.jpg",
+        "GBP",
+        "pending_transfer",
+        "240298",
+        "",
+        "",
+        passwordHash,
+    ]);
+
+    const userId = Number(result.lastInsertRowid);
+    const transactions = [
+        { reference_id: 'TXN-001', category: 'Deposit', type: 'credit', description: 'Business Funding', amount: 300000.0, status: 'Completed', date: '2026-05-10 09:00:00' },
+        { reference_id: 'TXN-002', category: 'Payment', type: 'debit', description: 'Rent Payment', amount: -1500.0, status: 'Completed', date: '2026-05-12 10:30:00' },
+        { reference_id: 'TXN-003', category: 'Purchase', type: 'debit', description: 'Supermarket Groceries', amount: -500.0, status: 'Completed', date: '2026-05-15 14:20:00' },
+        { reference_id: 'TXN-004', category: 'Payment', type: 'debit', description: 'Electric & Gas Utility', amount: -200.0, status: 'Completed', date: '2026-05-18 08:45:00' },
+        { reference_id: 'TXN-005', category: 'Payment', type: 'debit', description: 'Health Insurance', amount: -300.0, status: 'Completed', date: '2026-05-20 11:15:00' },
+        { reference_id: 'TXN-006', category: 'Purchase', type: 'debit', description: 'Restaurant Dining', amount: -150.0, status: 'Completed', date: '2026-05-22 19:30:00' },
+        { reference_id: 'TXN-007', category: 'Payment', type: 'debit', description: 'Car Loan Installment', amount: -800.0, status: 'Completed', date: '2026-05-25 10:00:00' },
+        { reference_id: 'TXN-008', category: 'Purchase', type: 'debit', description: 'Holiday Booking', amount: -9000.0, status: 'Completed', date: '2026-05-26 15:45:00' },
+        { reference_id: 'TXN-009', category: 'Purchase', type: 'debit', description: 'Retail Shopping', amount: -350.0, status: 'Completed', date: '2026-05-28 12:20:00' },
+        { reference_id: 'TXN-010', category: 'Purchase', type: 'debit', description: 'Miscellaneous', amount: -200.0, status: 'Completed', date: '2026-05-29 09:10:00' }
+    ];
+
+    for (const tx of transactions) {
+        await dbRun(createTransactionSql, [userId, tx.reference_id, tx.category, tx.type, tx.description, tx.amount, tx.status, "GBP", tx.date, null]);
+    }
 }
 
 async function createTransaction(userId, { referenceId, category, type, description, amount, status, currencyCode, createdAt, metadata }) {
