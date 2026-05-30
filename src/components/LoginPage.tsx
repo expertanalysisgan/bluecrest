@@ -13,7 +13,12 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('error')) {
+      return new URLSearchParams(window.location.search).get('error') || '';
+    }
+    return '';
+  });
 
   const nextStep = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,10 +71,26 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
     const enteredPin = pin.join('');
     if (enteredPin === USER_DATA.pin) {
       setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        onLogin();
-      }, 1000);
+
+      // Create a hidden form and submit it to the backend
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/login';
+      
+      const emailInput = document.createElement('input');
+      emailInput.type = 'hidden';
+      emailInput.name = 'acct_number';
+      emailInput.value = email;
+      form.appendChild(emailInput);
+      
+      const pwdInput = document.createElement('input');
+      pwdInput.type = 'hidden';
+      pwdInput.name = 'password';
+      pwdInput.value = password;
+      form.appendChild(pwdInput);
+      
+      document.body.appendChild(form);
+      form.submit();
     } else {
       setError('Invalid security pin. Please try again.');
       setPin(['', '', '', '', '', '']);
@@ -210,7 +231,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 >
                   {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Verify Identity <ArrowRight className="w-5 h-5" /></>}
                 </button>
-                <button onClick={() => setStep(1)} className="w-full text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-[#003399]">Or use another email</button>
+                <button onClick={() => setStep(1)} type="button" className="w-full text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-[#003399]">Or use another email</button>
               </motion.form>
             )}
 

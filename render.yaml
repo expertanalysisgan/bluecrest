@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: corpus-developerplug
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.cjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

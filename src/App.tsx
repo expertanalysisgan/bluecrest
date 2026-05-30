@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardOverview from './components/DashboardOverview';
@@ -21,18 +21,95 @@ import { FileText, User as UserIcon, CreditCard, Bell, History, Shield, Key } fr
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [dataLoaded, setDataLoaded] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState(() => {
+    const path = window.location.pathname;
+    if (path.includes('wire-transfer')) return 'intl-transfer';
+    if (path.includes('dom-transfer')) return 'local-transfer';
+    if (path.includes('profile')) return 'details';
+    if (path.includes('deposit')) return 'dashboard';
+    return 'dashboard';
+  });
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isRestrictedModalOpen, setIsRestrictedModalOpen] = useState(false);
   const [isSelectTypeModalOpen, setIsSelectTypeModalOpen] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/portal-data')
+      .then(res => {
+        if (res.status === 401) {
+          if (!window.location.pathname.includes('/auth/login')) {
+            window.location.href = '/auth/login';
+          } else {
+            setDataLoaded(true);
+            setIsLoggedIn(false);
+          }
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (!data) return;
+        
+        USER_DATA.surname = data.user.firstName || "";
+        USER_DATA.middleName = "";
+        USER_DATA.lastName = data.user.lastName || "";
+        USER_DATA.username = data.user.username || "";
+        USER_DATA.email = data.user.email || "";
+        USER_DATA.dob = data.user.dateOfBirth || "";
+        USER_DATA.phone = data.user.phone || "";
+        USER_DATA.country = data.user.country || "";
+        USER_DATA.state = data.user.state || "";
+        USER_DATA.city = data.user.city || "";
+        USER_DATA.balance = data.summary.availableBalance || 0;
+        USER_DATA.gender = data.user.gender || "";
+        USER_DATA.occupation = data.user.occupation || "";
+        USER_DATA.address = data.user.address || "";
+        USER_DATA.accountNumber = data.user.accountNumber || "";
+
+        TRANSACTIONS.length = 0;
+        if (data.transactions) {
+          data.transactions.forEach((tx: any) => {
+            TRANSACTIONS.push({
+              id: tx.reference_id || tx.id.toString(),
+              name: tx.description,
+              date: tx.created_at.split(' ')[0],
+              time: tx.created_at.split(' ')[1],
+              amount: tx.amount,
+              type: tx.type,
+              status: tx.status,
+              category: tx.category
+            });
+          });
+        }
+
+        setDataLoaded(true);
+        setIsLoggedIn(true);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setActiveTab('dashboard');
+    fetch('/logout', { method: 'POST' }).then(() => {
+      window.location.href = '/auth/login';
+    });
   };
 
+  if (!dataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-light">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-indigo-900 font-bold">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+    return <LoginPage onLogin={() => window.location.href = '/dashboard'} />;
   }
 
   const handleActionClick = (id: string) => {
